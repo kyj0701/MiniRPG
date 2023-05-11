@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class Skeleton : Enemy
 {
+    public BoxCollider2D weaponColl;
+
     public enum State
     {
         Idle,
@@ -17,16 +19,14 @@ public class Skeleton : Enemy
     private void Awake()
     {
         base.Awake();
-        speed = 2.0f;
-        curHp = 4;
-        atkCoolTime = 3f;
-        atkCoolTimeCalc = atkCoolTime;
 
         StartCoroutine(FSM());
     }
 
     private void Update()
     {
+        if (!isLive) return;
+
         if (!isHit && !IsPlayingAnim("Walk"))
         {
             MyAnimSetTrigger("Idle");
@@ -66,7 +66,7 @@ public class Skeleton : Enemy
 
                 if (Physics2D.OverlapCircle(wallCheck.position, 0.01f, layer))
                 {
-                    MonsterFlip();
+                    EnemyFlip();
                 }
                 if (canAtk && IsPlayerDir())
                 {
@@ -83,7 +83,7 @@ public class Skeleton : Enemy
         {
             if (!IsPlayerDir())
             {
-                MonsterFlip();
+                EnemyFlip();
             }
         }
     }
@@ -103,5 +103,10 @@ public class Skeleton : Enemy
         {
             curState = State.Walk;
         }
+    }
+
+    public void WeaponColliderOnOff()
+    {
+        weaponColl.enabled = !weaponColl.enabled;
     }
 }

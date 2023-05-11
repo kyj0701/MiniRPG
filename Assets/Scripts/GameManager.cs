@@ -7,7 +7,6 @@ public class GameManager : MonoBehaviour
     public static GameManager instance;
 
     public Player player;
-    public LayerMask playerLayer;
 
     private void Awake()
     {

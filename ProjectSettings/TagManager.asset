@@ -7,6 +7,7 @@ TagManager:
   - Enemy
   - EnemyHitBox
   - PlayerHitBox
+  - PlayerWeapon
   layers:
   - Default
   - TransparentFX
@@ -18,8 +19,8 @@ TagManager:
   - Enemy
   - EnemyHitBox
   - PlayerHitBox
-  - 
-  - 
+  - PlayerWeapon
+  - EnemyDead
   - 
   - 
   - 

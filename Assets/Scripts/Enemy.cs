@@ -9,7 +9,7 @@ public class Enemy : MonoBehaviour
     public float atkCoolTime = 3f;
     public float atkCoolTimeCalc = 3f;
 
-    bool isLive;
+    public bool isLive = true;
     public bool isHit = false;
     public bool isGround = true;
     public bool canAtk = true;
@@ -38,7 +38,7 @@ public class Enemy : MonoBehaviour
             yield return null;
             if (!hitBox.activeInHierarchy)
             {
-                yield return new WaitForSeconds(0.5f);
+                yield return new WaitForSeconds(0.3f);
                 hitBox.SetActive(true);
                 isHit = false;
             }
@@ -78,7 +78,7 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    protected void MonsterFlip()
+    protected void EnemyFlip()
     {
         isRight = !isRight;
 
@@ -109,14 +109,64 @@ public class Enemy : MonoBehaviour
         curHp -= damage;
         isHit = true;
 
+        if (curHp <= 0)
+        {
+            Debug.Log("Enemy is dead");
+            StartCoroutine(EnemyDead());
+        }
+        else
+        {
+            Debug.Log("Enemy Hit! : " + curHp);
+            MyAnimSetTrigger("Hit");
+            rigid.velocity = Vector2.zero;
+
+            if (transform.position.x > GameManager.instance.player.transform.position.x)
+            {
+                rigid.velocity = new Vector2(2f, 0);
+            }
+            else
+            {
+                rigid.velocity = new Vector2(-2f, 0);
+            }
+        }
+
         hitBox.SetActive(false);
+    }
+
+    IEnumerator EnemyDead()
+    {
+        isLive = false;
+        box.enabled = false;
+        rigid.simulated = false;
+        rigid.velocity = Vector2.zero;
+
+        ChangeLayersRecursively(transform, "EnemyDead");
+        MyAnimSetTrigger("Dead");
+
+        yield return new WaitForSeconds(3f);
+
+        Destroy(gameObject);
+    }
+
+    public void ChangeLayersRecursively(Transform trans, string name)
+    {
+        trans.gameObject.layer = LayerMask.NameToLayer(name);
+        foreach (Transform child in trans)
+        {
+            ChangeLayersRecursively(child, name);
+        }
     }
 
     protected void OnTriggerEnter2D(Collider2D collision)
     {
-        //if ( collision.transform.CompareTag ( ?? ) )
-        //{
-        //TakeDamage ( 0 );
-        //}
+        if (!isLive) return;
+
+        if (collision.tag == "PlayerWeapon" && !isHit)
+        {
+            if (!IsPlayerDir()) EnemyFlip();
+
+            TakeDamage(1);
+        }
+        
     }
 }

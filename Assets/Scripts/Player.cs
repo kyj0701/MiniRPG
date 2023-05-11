@@ -4,23 +4,19 @@ using System.Collections;
 public class Player : MonoBehaviour
 {
 
-    [SerializeField] float m_speed = 4.0f;
-    [SerializeField] float m_jumpForce = 7.5f;
+    [SerializeField] float spped = 4.0f;
+    [SerializeField] float jumpPower = 7.5f;
     [SerializeField] float m_rollForce = 6.0f;
     [SerializeField] bool m_noBlood = false;
-    [SerializeField] GameObject m_slideDust;
 
-    public Transform pos;
+    public int curHp = 20;
     public Vector2 boxSize;
+    public GameObject hitBox;
+    public BoxCollider2D weaponColl;
 
     private Animator anim;
     private Rigidbody2D rigid;
-    private Sensor_HeroKnight m_groundSensor;
-    private Sensor_HeroKnight m_wallSensorR1;
-    private Sensor_HeroKnight m_wallSensorR2;
-    private Sensor_HeroKnight m_wallSensorL1;
-    private Sensor_HeroKnight m_wallSensorL2;
-    private bool m_isWallSliding = false;
+    private Sensor m_groundSensor;
     private bool m_grounded = false;
     private bool m_rolling = false;
     private int m_facingDirection = 1;
@@ -29,6 +25,8 @@ public class Player : MonoBehaviour
     private float m_delayToIdle = 0.0f;
     private float m_rollDuration = 8.0f / 14.0f;
     private float m_rollCurrentTime;
+    private bool isHit = false;
+    private bool invincible = false;
 
 
     // Use this for initialization
@@ -36,16 +34,30 @@ public class Player : MonoBehaviour
     {
         anim = GetComponent<Animator>();
         rigid = GetComponent<Rigidbody2D>();
-        m_groundSensor = GetComponentsInChildren<Sensor_HeroKnight>()[0];
-        //m_wallSensorR1 = GetComponentsInChildren<Sensor_HeroKnight>()[1];
-        //m_wallSensorR2 = GetComponentsInChildren<Sensor_HeroKnight>()[2];
-        //m_wallSensorL1 = GetComponentsInChildren<Sensor_HeroKnight>()[3];
-        //m_wallSensorL2 = GetComponentsInChildren<Sensor_HeroKnight>()[4];
+        m_groundSensor = GetComponentsInChildren<Sensor>()[0];
+
+        StartCoroutine(ResetCollider());
+    }
+
+    IEnumerator ResetCollider()
+    {
+        while (true)
+        {
+            yield return null;
+            if (!hitBox.activeInHierarchy)
+            {
+                yield return new WaitForSeconds(0.5f);
+                hitBox.SetActive(true);
+                isHit = false;
+            }
+        }
     }
 
     // Update is called once per frame
     void Update()
     {
+        if (IsPlayingAnim("Hurt") || isHit) return;
+
         // Increase timer that controls attack combo
         m_timeSinceAttack += Time.deltaTime;
 
@@ -89,27 +101,22 @@ public class Player : MonoBehaviour
 
         // Move
         if (!m_rolling)
-            rigid.velocity = new Vector2(inputX * m_speed, rigid.velocity.y);
+        {
+            rigid.velocity = new Vector2(inputX * spped, rigid.velocity.y);
+        }
 
         //Set AirSpeed in animator
         anim.SetFloat("AirSpeedY", rigid.velocity.y);
 
         // -- Handle Animations --
-        //Wall Slide
-        //m_isWallSliding = (m_wallSensorR1.State() && m_wallSensorR2.State()) || (m_wallSensorL1.State() && m_wallSensorL2.State());
-        //anim.SetBool("WallSlide", m_isWallSliding);
-
         //Death
         if (Input.GetKeyDown("e") && !m_rolling)
         {
             anim.SetBool("noBlood", m_noBlood);
             anim.SetTrigger("Death");
         }
-
         //Hurt
-        else if (Input.GetKeyDown("q") && !m_rolling)
-            anim.SetTrigger("Hurt");
-
+        else if (Input.GetKeyDown("q") && !m_rolling) anim.SetTrigger("Hurt");
         //Attack
         else if (Input.GetMouseButtonDown(0) && m_timeSinceAttack > 0.25f && !m_rolling)
         {
@@ -122,12 +129,6 @@ public class Player : MonoBehaviour
             // Reset Attack combo if time since last attack is too large
             if (m_timeSinceAttack > 1.0f)
                 m_currentAttack = 1;
-
-            Collider2D[] colls = Physics2D.OverlapBoxAll(pos.position, boxSize, 0);
-            foreach (Collider2D coll in colls)
-            {
-                if (coll.tag == "Enemy") Debug.Log(coll.tag);
-            }
 
             // Call one of three attack animations "Attack1", "Attack2", "Attack3"
             anim.SetTrigger("Attack" + m_currentAttack);
@@ -147,7 +148,7 @@ public class Player : MonoBehaviour
             anim.SetBool("IdleBlock", false);
 
         // Roll
-        else if (Input.GetKeyDown("left shift") && !m_rolling && !m_isWallSliding)
+        else if (Input.GetKeyDown("left shift") && !m_rolling)
         {
             m_rolling = true;
             anim.SetTrigger("Roll");
@@ -161,7 +162,7 @@ public class Player : MonoBehaviour
             anim.SetTrigger("Jump");
             m_grounded = false;
             anim.SetBool("Grounded", m_grounded);
-            rigid.velocity = new Vector2(rigid.velocity.x, m_jumpForce);
+            rigid.velocity = new Vector2(rigid.velocity.x, jumpPower);
             m_groundSensor.Disable(0.2f);
         }
 
@@ -181,31 +182,82 @@ public class Player : MonoBehaviour
             if (m_delayToIdle < 0)
                 anim.SetInteger("AnimState", 0);
         }
+
+        if (!IsPlayingAnim("Hurt")) isHit = false;
+        if (!IsPlayingAnim("Attack" + m_currentAttack)) weaponColl.enabled = false;
     }
 
-    // Animation Events
-    // Called in slide animation.
-    void AE_SlideDust()
+    public bool IsPlayingAnim(string name)
     {
-        Vector3 spawnPosition;
-
-        if (m_facingDirection == 1)
-            spawnPosition = m_wallSensorR2.transform.position;
-        else
-            spawnPosition = m_wallSensorL2.transform.position;
-
-        if (m_slideDust != null)
+        if (anim.GetCurrentAnimatorStateInfo(0).IsName(name))
         {
-            // Set correct arrow spawn position
-            GameObject dust = Instantiate(m_slideDust, spawnPosition, gameObject.transform.localRotation) as GameObject;
-            // Turn arrow in correct direction
-            dust.transform.localScale = new Vector3(m_facingDirection, 1, 1);
+            return true;
+        }
+        return false;
+    }
+
+    public void WeaponColliderOnOff()
+    {
+        //if (!weaponColl.enabled && IsPlayingAnim("Attack" + m_currentAttack))
+        //{
+        //    switch(m_currentAttack)
+        //    {
+        //        case 1:
+        //            weaponColl.size = new Vector2(1.2f, 1.3f);
+        //            break;
+        //        case 2:
+        //            break;
+        //        case 3:
+        //            break;
+        //    }
+        //}
+        weaponColl.enabled = !weaponColl.enabled;
+    }
+
+
+    protected void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (collision.tag == "Enemy")
+        {
+            if (!invincible)
+            {
+                StartCoroutine(InvincibleEffect());
+                Debug.Log("Player Hit");
+            }
+
+            rigid.velocity = Vector2.zero;
+            isHit = true;
+            Invoke("IsHitResult", 0.5f);
+            hitBox.SetActive(false);
+
+            if (transform.position.x > collision.transform.position.x)
+            {
+                rigid.velocity = new Vector2(3f, 1f);
+            }
+            else
+            {
+                rigid.velocity = new Vector2(-3f, 1f);
+            }
+
+            if (!IsPlayingAnim("Attack" + m_currentAttack)) anim.SetTrigger("Hurt");
         }
     }
 
-    private void OnDrawGizmos()
+    private void IsHitResult()
     {
-        Gizmos.color = Color.blue;
-        Gizmos.DrawWireCube(pos.position, boxSize);
+        isHit = false;
+    }
+
+    IEnumerator InvincibleEffect()
+    {
+        invincible = true;
+
+        anim.SetTrigger("Hurt");
+
+        yield return new WaitForSeconds(1f);
+
+        invincible = false;
+
+        anim.SetInteger("AnimState", 0);
     }
 }
