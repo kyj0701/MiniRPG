@@ -2,13 +2,13 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Skeleton : Enemy
+public class Goblin : Enemy
 {
 
     public enum State
     {
         Idle,
-        Walk,
+        Run,
         Attack,
     };
     public State curState = State.Idle;
@@ -26,7 +26,7 @@ public class Skeleton : Enemy
     {
         if (!isLive) return;
 
-        if (!isHit && !IsPlayingAnim("Walk"))
+        if (!isHit && !IsPlayingAnim("Run"))
         {
             MyAnimSetTrigger("Idle");
         }
@@ -46,10 +46,10 @@ public class Skeleton : Enemy
         MyAnimSetTrigger("Idle");
 
         yield return new WaitForSeconds(1.0f);
-        curState = State.Walk;
+        curState = State.Run;
     }
 
-    IEnumerator Walk()
+    IEnumerator Run()
     {
         yield return null;
         float runTime = Random.Range(2.0f, 4.0f);
@@ -60,7 +60,7 @@ public class Skeleton : Enemy
 
             if (!isHit)
             {
-                MyAnimSetTrigger("Walk");
+                MyAnimSetTrigger("Run");
                 rigid.velocity = new Vector2(-transform.localScale.x * speed, rigid.velocity.y);
 
                 if (Physics2D.OverlapCircle(wallCheck.position, 0.01f, layer))
@@ -69,7 +69,7 @@ public class Skeleton : Enemy
                 }
                 if (canAtk && IsPlayerDir())
                 {
-                    if (Vector2.Distance(transform.position, GameManager.instance.player.transform.position) < 1.5f)
+                    if (Vector2.Distance(transform.position, GameManager.instance.player.transform.position) < 2.5f)
                     {
                         curState = State.Attack;
                         break;
@@ -100,7 +100,7 @@ public class Skeleton : Enemy
         }
         else
         {
-            curState = State.Walk;
+            curState = State.Run;
         }
     }
 

@@ -232,11 +232,11 @@ public class Player : MonoBehaviour
 
             if (transform.position.x > collision.transform.position.x)
             {
-                rigid.velocity = new Vector2(3f, 1f);
+                rigid.velocity = new Vector2(5f, 1.5f);
             }
             else
             {
-                rigid.velocity = new Vector2(-3f, 1f);
+                rigid.velocity = new Vector2(-5f, 1.5f);
             }
 
             if (!IsPlayingAnim("Attack" + m_currentAttack)) anim.SetTrigger("Hurt");

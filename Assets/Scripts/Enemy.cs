@@ -20,6 +20,7 @@ public class Enemy : MonoBehaviour
     public GameObject hitBox;
     public Animator anim;
     public LayerMask layer;
+    public BoxCollider2D weaponColl;
 
     protected void Awake()
     {
@@ -108,6 +109,11 @@ public class Enemy : MonoBehaviour
     {
         curHp -= damage;
         isHit = true;
+        
+        if (weaponColl.enabled)
+        {
+            weaponColl.enabled = false;
+        }
 
         if (curHp <= 0)
         {
